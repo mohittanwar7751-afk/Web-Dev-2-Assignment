@@ -1,95 +1,96 @@
-//target the html elements like form , input fields, buttons 
-const eventForm = document.getElementById("eventForm");
-const eventTitle = document.getElementById("eventTitle")
-const eventDate = document.getElementById("eventDate")
-const eventCategory = document.getElementById("eventCategory")
-const eventDescription = document.getElementById("eventDescription")
-const clearAllBtn = document.getElementById("clearAllBtn")
-const addSampleBtn = document.getElementById("addSampleBtn");
-const eventContainer = document.getElementById("eventContainer");
+       const API_KEY = "096b2754cd232431b95703fb8e78799f";
+        //    const API_KEY = "096b2754cd232431b95703fb8e78799f";
 
-//take 2 sample events for Add sample event data
-let sampleEvent =
-    [
-        {
-            title: "Web Dev",
-            date: "13-11-2026",
-            category: "workshop",
-            description: "Workshop is good for learning new skills and improving existing ones."
-        },
-        {
-            title: "Web Dev_2",
-            date: "12-11-2026",
-            category: "conference",
-            description: "Conference means Conference"
+        const weatherBox = document.getElementById("weather");
+        const historyBox = document.getElementById("history");
+
+        /* ---------- WEATHER FETCH ---------- */
+        async function getWeather(city) {
+
+            // small delay for smoother UI
+            // await new Promise(r => setTimeout(r, 500));
+
+            const res = await fetch(
+                `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric`
+            );
+            if (!res.ok) {
+                alert("city not found");
+                throw new Error("City not found");
+            }
+            const data = await res.json();
+            return data;
         }
-    ]
 
+         /* ---------- BUTTON CLICK ---------- */
+        document.getElementById("searchBtn").onclick = () => {
+            const city = cityInput.value.trim();
+            if (city) {
+                search(city);
+            }
+        };
 
-//Create event card which contains the user data and we store it inside a div.
-function createEventCard(eventData) {
-    const card = document.createElement("div");
-    //to add a class name dynamically
-    card.className = "event-card";
+        /* ---------- UI RENDER ---------- */
+        function renderWeather(d) {
+            weatherBox.innerHTML = `
+        <div class="weather-item"><label>City</label><span>${d.name}, ${d.sys.country}</span></div>
+        <div class="weather-item"><label>Temperature</label><span>${d.main.temp} °C</span></div>
+        <div class="weather-item"><label>Weather</label><span>${d.weather[0].main}</span></div>
+        <div class="weather-item"><label>Humidity</label><span>${d.main.humidity}%</span></div>
+        <div class="weather-item"><label>Wind Speed</label><span>${d.wind.speed} m/s</span></div>
+    `;
+        }
 
-    card.innerHTML = `
-    <button class=delete-btn>X</button>
-    <h3>${eventData.title}</h3>
-    <div>${eventData.date}</div>
-    <span>${eventData.category}</span>
-    <p>${eventData.description}</p>
-    `
-    //return the card for the addEvent function
-    return card;
+        /* ---------- SAVE SEARCH HISTORY ---------- */
+        function saveHistory(city) {
+    let history = JSON.parse(localStorage.getItem("weatherHistory")) || [];
+
+    if (!history.includes(city)) {
+        history.push(city);
+        localStorage.setItem("weatherHistory", JSON.stringify(history));
+    }
+
+    showHistory();
 }
 
-//Add the created event and apend inside the event container
-function addEvent(eventData) {
-    //if empty-state is present then remove it when new card will be added.
-    const emptyState = document.querySelector(".empty-state");
-    if (emptyState) emptyState.remove();
 
-    eventContainer.appendChild(createEventCard(eventData));
+        /* ---------- SHOW HISTORY ---------- */
+        function showHistory() {
+    let history = JSON.parse(localStorage.getItem("weatherHistory")) || [];
+
+    historyBox.innerHTML = "";
+
+    history.forEach(city => {
+        const btn = document.createElement("button");
+        btn.innerText = city;
+
+        btn.onclick = () => {
+            search(city);
+        };
+
+        historyBox.appendChild(btn);
+    });
 }
 
-
-//form handling using submit event 
-eventForm.addEventListener("submit", (event) => {
-    event.preventDefault()
-
-    //eventData stores the user given value 
-    const eventData =
-    {
-        title: eventTitle.value,
-        date: eventDate.value,
-        category: eventCategory.value,
-        description: eventDescription.value
-    }
-    addEvent(eventData);
-
-})
-// remove event from eventContainer
-eventContainer.addEventListener("click", (event) => {
-    console.log("inside delete");
-    const card = event.target.closest(".event-card");
-    console.log(card);
-    if (event.target.classList.contains("delete-btn")) {
-        card.remove();
-    }
-
-    if (!eventContainer.querySelector(".event-card")) {
-        eventContainer.innerHTML = `
-        <div class="empty-state">No events yet. Add your first event!</div>
-    `
-    }
-})
-// add sample events
-addSampleBtn.addEventListener("click", () => {
-    sampleEvent.forEach(addEvent);
-})
-// clear all events
-clearAllBtn.addEventListener("click", () => {
-    eventContainer.innerHTML = `
-        <div class="empty-state">No events yet. Add your first event!</div>
-    `
-});
+        /* ---------- SEARCH FUNCTION ---------- */
+        async function search(city) {
+            weatherBox.innerHTML = "";
+            try {
+                const data = await getWeather(city);
+                renderWeather(data);
+                saveHistory(data.name); 
+            } catch (error) {
+                weatherBox.innerHTML = `<p style="color:red">${error.message}</p>`;
+            }
+        }
+       
+        /* ---------- ENTER KEY SEARCH ---------- */
+        cityInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                const city = cityInput.value.trim();
+                if (city) {
+                    search(city);
+                }
+            }
+        });
+        /* ---------- INITIAL LOAD ---------- */
+        showHistory();
